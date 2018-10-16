@@ -1,20 +1,8 @@
 package edu.harvard.hms.dbmi.avillach.jwt;
 
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.security.Key;
-import java.util.Date;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.crypto.spec.SecretKeySpec;
 
 public class App
 {
@@ -83,7 +71,7 @@ public class App
             default:
                 System.out.println("Your entered unit is: " + unit +
                         ", which is not supported. Currently only support day(s)/ms.\n" +
-                        "Using 7 days as the time to live for generating the token");
+                        "Using 7 days as the time to live for the token");
                 return defaultTTL;
         }
     }
