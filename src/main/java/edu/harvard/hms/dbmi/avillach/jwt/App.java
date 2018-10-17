@@ -1,20 +1,8 @@
 package edu.harvard.hms.dbmi.avillach.jwt;
 
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.security.Key;
-import java.util.Date;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.crypto.spec.SecretKeySpec;
 
 public class App
 {
@@ -68,7 +56,7 @@ public class App
     }
 
     private static Long parseTTLBasedOnUnit(long ttl, long defaultTTL, String unit, String defaultUnit){
-        if (ttl <= 0)
+        if (ttl < 0)
             return defaultTTL;
 
         if (unit.isEmpty())
@@ -76,55 +64,29 @@ public class App
 
         switch (unit){
             case "day":
+            case "days":
                 return ttl*1000 * 60 * 60 * 24;
             case "ms":
                 return ttl;
             default:
                 System.out.println("Your entered unit is: " + unit +
-                        ", which is not supported. Currently only support day/ms.\n" +
-                        "Using ms(default unit) to generate the token");
+                        ", which is not supported. Currently only support day(s)/ms.\n" +
+                        "Using 7 days as the time to live for the token");
                 return defaultTTL;
         }
     }
 
     private static String createJWT(FileInputStream clientSecret, String id, String issuer, String claim_key, String subject, long ttlMillis) throws IOException{
-        SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
 
-        long nowMillis = System.currentTimeMillis();
-        Date now = new Date(nowMillis);
 
-        //We will sign our JWT with our ApiKey secret
-        byte[] apiKeySecretBytes = new BufferedReader(new InputStreamReader(clientSecret)).readLine().getBytes();
-        Key signingKey = new SecretKeySpec(apiKeySecretBytes, signatureAlgorithm.getJcaName());
-
+        String clientSecretString = new BufferedReader(new InputStreamReader(clientSecret)).readLine();
 
         Map<String, Object> claims = new HashMap<String, Object>();
-        Jwts.builder().setClaims(claims);
-
-
-
-        //Let's set the JWT Claims
-        JwtBuilder builder = Jwts.builder()
-                .setClaims(claims)
-                .setId(id)
-                .setIssuedAt(now)
-                .setSubject(subject)
-                .setIssuer(issuer)
-                .signWith(signatureAlgorithm, signingKey);
-
         // available PIC-SURE userFields allowed for JWT Tokens.
-        // see: global field java:global/userField in standalone.xml, IRCT_USER_FIELD in 
+        // see: global field java:global/userField in standalone.xml, IRCT_USER_FIELD in
         // docker-images/pic-sure/Dockerfile, docker-images/deployments/pic-sure for userField configuration - Andre
         claims.put(claim_key, subject);
 
-        //if it has been specified, let's add the expiration
-        if (ttlMillis >= 0) {
-            long expMillis = nowMillis + ttlMillis;
-            Date exp = new Date(expMillis);
-            builder.setExpiration(exp);
-        }
-
-        //Builds the JWT and serializes it to a compact, URL-safe string
-        return builder.compact();
+        return JWTUtil.createJwtToken(clientSecretString,id, issuer, claims, subject, ttlMillis);
     }
 }
